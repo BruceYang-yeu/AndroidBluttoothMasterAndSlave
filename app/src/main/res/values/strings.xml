@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">BLEDemo</string>
+    <string name="startServer">启动GattServer</string>
+    <string name="startScan">开始扫描</string>
+    <string name="send">发送</string>
+    <string name="checkAdvertise">测试BLE广播</string>
+
+    <!--提示区域-->
+    <string name="click_to_client">扫描结果:（点击设备可以连接）</string>
+    <string name="connected">连接成功</string>
+    <string name="disconnected">连接断开</string>
+    <string name="not_connected">未连接</string>
+    <string name="advertise_not_support">这台设备不支持BLE广播</string>
+    <string name="advertise_support">这台设备支持BLE广播</string>
+
+</resources>
