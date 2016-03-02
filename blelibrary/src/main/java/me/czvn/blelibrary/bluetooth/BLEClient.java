@@ -26,11 +26,8 @@ import java.util.UUID;
  * 对bluetoothGatt进行了封装
  */
 public final class BLEClient {
-    // TODO: 2016/1/22 为了实现多人聊天的情景，可以将消息全部改成Json传输
     private static final String TAG = BLEClient.class.getSimpleName();
     private Context mContext;
-    private BluetoothManager bluetoothManager;
-    private BluetoothAdapter bluetoothAdapter;
 
     private BluetoothGattCallback gattCallback;
     private BluetoothGatt bluetoothGatt;
@@ -44,9 +41,7 @@ public final class BLEClient {
 
     private boolean connected;
 
-    private MsgQueue msgQueue;//使用消息队列达到异步处理数据发送的问题
-    // 现在在中文字符数达到一定量的时候会乱码，说明这部分还是有问题，可能跟中文字符的getBytes方法有关系，需要尝试指定字符编码
-    //指定字符编码无效，待Debug
+    private MsgQueue<byte[]> msgQueue;//使用消息队列达到异步处理数据发送的问题
 
     private boolean onWrite;//是否正在发送数据
 
@@ -68,7 +63,7 @@ public final class BLEClient {
                 ibleCallback.onMessageReceived(msg);
             }
         });
-        msgQueue = new MsgQueue();
+        msgQueue = new MsgQueue<>();
         initGattCallback();
 
     }
@@ -80,8 +75,8 @@ public final class BLEClient {
      * @return 是否连接成功
      */
     public boolean startConnect(String adderss) {
-        bluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
-        bluetoothAdapter = bluetoothManager.getAdapter();
+        BluetoothManager bluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
         bluetoothGatt = bluetoothAdapter.getRemoteDevice(adderss).connectGatt(mContext, false, gattCallback);
         if (bluetoothGatt.connect()) {
             connected = true;
@@ -146,7 +141,7 @@ public final class BLEClient {
                 if (service != null) {
                     BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(BLEProfile.UUID_CHARACTERISTIC_NOTIFY));
                     if (characteristic != null) {
-                        //SetNotification
+                        //订阅通知，这段代码对iOS的peripheral也能订阅
                         Log.i(TAG, "SetNotification");
                         bluetoothGatt.setCharacteristicNotification(characteristic, true);
                         for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {

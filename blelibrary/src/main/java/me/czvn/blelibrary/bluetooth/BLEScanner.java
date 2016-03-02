@@ -27,7 +27,6 @@ public final class BLEScanner {
 
     private Context context;
     private IScanResultListener scanResultListener;
-    private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner scanner;
     private ScanCallback scanCallback;
     private ScanSettings scanSettings;
@@ -55,7 +54,7 @@ public final class BLEScanner {
      * @return 如果设备不支持BLE扫描则返回false，支持返回true
      */
     public boolean startScan() {
-        bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
+        BluetoothAdapter bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
         if (bluetoothAdapter == null) {
             Log.e(TAG, "bluetoothAdapter is null");
             return false;

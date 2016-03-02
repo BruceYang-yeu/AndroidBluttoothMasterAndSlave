@@ -4,7 +4,7 @@ package me.czvn.blelibrary.utils;
  * Created by andy on 2016/1/19.
  * 链表实现的队列
  */
-public class MsgQueue {
+public final class MsgQueue<T> {
     private Node first;
     private Node last;
     private int length;
@@ -17,7 +17,7 @@ public class MsgQueue {
         return length;
     }
 
-    public void enQueue(byte[] item) {
+    public void enQueue(T item) {
         Node oldlast = last;
         last = new Node();
         last.item = item;
@@ -31,19 +31,19 @@ public class MsgQueue {
 
     }
 
-    public byte[] deQueue() {
+    public T deQueue() {
         if (isEmpty()) {
             last = null;
             return null;
         }
-        byte[] values = first.item;
+        T values = first.item;
         first = first.next;
         length--;
         return values;
     }
 
     private class Node {
-        byte[] item;
+        T item;
         Node next;
     }
 }

@@ -105,7 +105,6 @@ public final class BLEServer {
     }
 
 
-
     private void setCallback(IBLECallback callback) {
         this.callback = callback;
     }
