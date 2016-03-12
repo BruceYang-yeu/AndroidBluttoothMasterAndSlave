@@ -18,4 +18,4 @@
 
 ## 相关
 
-*   本人写的博文[Android 蓝牙BLE通讯详解](http://czvn.me/blog/all/practice/android/54)
+*   [相关博客](http://czvn.me/blog/code/android/54)
