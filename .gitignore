@@ -1,3 +1,7 @@
+
+# Created by https://www.gitignore.io/api/android
+
+### Android ###
 # Built application files
 *.apk
 *.ap_
@@ -31,3 +35,6 @@ proguard/
 # Android Studio captures folder
 captures/
 .idea/
+
+### Android Patch ###
+gen-external-apklibs
