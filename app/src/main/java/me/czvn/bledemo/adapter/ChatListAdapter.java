@@ -14,7 +14,7 @@ import me.czvn.bledemo.datas.MsgData;
  * Created by andy on 2016/2/26.
  *
  */
-public class ChatListAdapter extends BaseAdapter {
+public final class ChatListAdapter extends BaseAdapter {
     private List<MsgData> list;
     private Context mContext;
 

@@ -15,7 +15,7 @@ import me.czvn.bledemo.datas.ScanData;
  * Created by andy on 2016/2/26.
  *
  */
-public class ScanListAdapter extends BaseAdapter{
+public final class ScanListAdapter extends BaseAdapter{
     private List<ScanData> list;
     private Context mContext;
 

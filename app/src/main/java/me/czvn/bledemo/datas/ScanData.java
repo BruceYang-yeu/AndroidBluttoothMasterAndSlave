@@ -4,7 +4,7 @@ package me.czvn.bledemo.datas;
  * Created by andy on 2016/2/26.
  *
  */
-public class ScanData {
+public final class ScanData {
     private String deviceName;
     private String address;
 

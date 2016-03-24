@@ -4,7 +4,7 @@ package me.czvn.bledemo.datas;
  * Created by andy on 2016/2/26.
  *
  */
-public class MsgData {
+public final class MsgData {
     private String Message;
 
     public MsgData(String message) {

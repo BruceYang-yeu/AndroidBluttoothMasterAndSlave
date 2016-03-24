@@ -18,6 +18,7 @@ import me.czvn.blelibrary.utils.MsgQueue;
 import me.czvn.blelibrary.utils.MsgReceiver;
 import me.czvn.blelibrary.utils.MsgSender;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -27,7 +28,8 @@ import java.util.UUID;
  */
 public final class BLEClient {
     private static final String TAG = BLEClient.class.getSimpleName();
-    private Context mContext;
+
+    private WeakReference<Context> contextWeakReference;
 
     private BluetoothGattCallback gattCallback;
     private BluetoothGatt bluetoothGatt;
@@ -36,6 +38,7 @@ public final class BLEClient {
     private MsgSender msgSender;
 
     private IBLECallback ibleCallback;
+
 
     private BluetoothGattCharacteristic writeChannel;
 
@@ -46,9 +49,9 @@ public final class BLEClient {
     private boolean onWrite;//是否正在发送数据
 
 
-    public BLEClient(Context mContext, IBLECallback callback) {
-        this.mContext = mContext;
-        this.ibleCallback = callback;
+    public BLEClient(Context mContext, IBLECallback IBLECallback) {
+        contextWeakReference=new WeakReference<>(mContext);
+        this.ibleCallback = IBLECallback;
         connected = false;
         msgSender = new MsgSender(new ISender() {
             @Override
@@ -71,13 +74,17 @@ public final class BLEClient {
     /**
      * 开始使用Gatt连接
      *
-     * @param adderss 要连接的蓝牙设备的地址
+     * @param address 要连接的蓝牙设备的地址
      * @return 是否连接成功
      */
-    public boolean startConnect(String adderss) {
+    public boolean startConnect(String address) {
+        Context mContext=contextWeakReference.get();
+        if(mContext==null){
+            return false;
+        }
         BluetoothManager bluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
-        bluetoothGatt = bluetoothAdapter.getRemoteDevice(adderss).connectGatt(mContext, false, gattCallback);
+        bluetoothGatt = bluetoothAdapter.getRemoteDevice(address).connectGatt(mContext, false, gattCallback);
         if (bluetoothGatt.connect()) {
             connected = true;
             return true;

@@ -18,11 +18,12 @@ import me.czvn.blelibrary.interfaces.ISender;
 import me.czvn.blelibrary.utils.MsgReceiver;
 import me.czvn.blelibrary.utils.MsgSender;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.UUID;
 
 /**
- * Created by andyon 2016/1/13.
+ * Created by andy 2016/1/13.
  * 这个类对bluetoothGattServer进行了封装
  */
 public final class BLEServer {
@@ -30,15 +31,14 @@ public final class BLEServer {
 
     private static BLEServer instance;
 
-    private Context mContext;
+    private WeakReference<Context> contextWeakReference;
+
     private BluetoothManager bluetoothManager;
 
     private BluetoothGattServer gattServer;
     private BluetoothGattServerCallback serverCallback;
     private BluetoothGattService gattService;
     private BluetoothGattCharacteristic notifyCharacteristic;
-    private BluetoothGattCharacteristic writeCharacteristic;
-    private BluetoothGattDescriptor gattDescriptor;
 
     private BluetoothDevice remoteDevice;
 
@@ -59,9 +59,10 @@ public final class BLEServer {
      */
     public static BLEServer getInstance(Context context, IBLECallback callback) {
         if (instance == null) {
-            instance = new BLEServer();
+            instance = new BLEServer(context);
+        } else {
+            instance.contextWeakReference = new WeakReference<>(context);
         }
-        instance.setContext(context);
         instance.setCallback(callback);
         return instance;
     }
@@ -69,15 +70,19 @@ public final class BLEServer {
     /**
      * 启动GattServer以被连接
      */
-    public void startGattServer() {
+    public boolean startGattServer() {
         if (!prepared) {
             initGattServerCallback();
             initGattServer();
         }
+        Context context = contextWeakReference.get();
+        if (context == null) {
+            return false;
+        }
         //开启GattServer
-        gattServer = bluetoothManager.openGattServer(mContext, serverCallback);
+        gattServer = bluetoothManager.openGattServer(context, serverCallback);
         gattServer.addService(gattService);
-
+        return true;
     }
 
     /**
@@ -109,11 +114,9 @@ public final class BLEServer {
         this.callback = callback;
     }
 
-    private void setContext(Context mContext) {
-        this.mContext = mContext;
-    }
 
-    private BLEServer() {
+    private BLEServer(Context context) {
+        contextWeakReference = new WeakReference<>(context);
         msgSender = new MsgSender(new ISender() {
             //发送数据（byte[]）的地方
             @Override
@@ -215,12 +218,18 @@ public final class BLEServer {
     }
 
     private void initGattServer() {
-        bluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
-        gattDescriptor = new BluetoothGattDescriptor(UUID.randomUUID(), BluetoothGattDescriptor.PERMISSION_WRITE);
+        Context context = contextWeakReference.get();
+        if (context == null) {
+            prepared = false;
+            return;
+        }
+
+        bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothGattDescriptor gattDescriptor = new BluetoothGattDescriptor(UUID.randomUUID(), BluetoothGattDescriptor.PERMISSION_WRITE);
         notifyCharacteristic = new BluetoothGattCharacteristic(UUID.fromString(BLEProfile.UUID_CHARACTERISTIC_NOTIFY),
                 BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY, BluetoothGattCharacteristic.PERMISSION_READ);
         notifyCharacteristic.addDescriptor(gattDescriptor);
-        writeCharacteristic = new BluetoothGattCharacteristic(UUID.fromString(BLEProfile.UUID_CHARACTERISTIC_WRITE),
+        BluetoothGattCharacteristic writeCharacteristic = new BluetoothGattCharacteristic(UUID.fromString(BLEProfile.UUID_CHARACTERISTIC_WRITE),
                 BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_WRITE);
         gattService = new BluetoothGattService(UUID.fromString(BLEProfile.UUID_SERVICE), BluetoothGattService.SERVICE_TYPE_PRIMARY);
         gattService.addCharacteristic(notifyCharacteristic);

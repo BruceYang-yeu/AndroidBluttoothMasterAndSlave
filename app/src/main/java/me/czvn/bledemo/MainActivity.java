@@ -33,13 +33,14 @@ import me.czvn.blelibrary.interfaces.IScanResultListener;
 
 /**
  * Created by andy on 2016/2/26.
+ * 简单的Demo，使用BLE实现聊天，没有对界面进行美化
  */
 
-public class MainActivity extends AppCompatActivity implements IBLECallback {
+public final class MainActivity extends AppCompatActivity implements IBLECallback {
     public static final String TAG = MainActivity.class.getSimpleName();
     public static final boolean LOG_DEBUG = BuildConfig.DEBUG;
     public static final int REQUEST_ENABLE_BLUETOOTH = 15;//请求打开蓝牙
-    public static final int SCAN_DURATION=10000;//扫描时长
+    public static final int SCAN_DURATION = 10000;//扫描时长
 
     private Button btnStartServer;
     private Button btnStartScan;
@@ -125,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements IBLECallback {
                     public void run() {
                         bleScanner.stopScan();
                     }
-                },SCAN_DURATION);
+                }, SCAN_DURATION);
             }
         });
         btnSendMsg.setOnClickListener(new View.OnClickListener() {
@@ -250,6 +251,7 @@ public class MainActivity extends AppCompatActivity implements IBLECallback {
 
     //Handler来刷新UI
     private static class MyHandler extends Handler {
+        //可以使用runOnUiThread或者持有View使用View.post来简化代码
         public static final int REFRESH_SCAN_LIST = 250;
         public static final int REFRESH_CHAT_LIST = 38;
 
@@ -295,7 +297,7 @@ public class MainActivity extends AppCompatActivity implements IBLECallback {
 
     }
 
-    //这个方法可以减少许多次强制类型转换
+    //可以减少许多次强制类型转换
     @SuppressWarnings("unchecked")
     private <T extends View> T getView(int resID) {
         return (T) findViewById(resID);

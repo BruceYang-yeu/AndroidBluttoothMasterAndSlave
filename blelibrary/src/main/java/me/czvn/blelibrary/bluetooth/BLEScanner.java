@@ -14,6 +14,7 @@ import android.util.Log;
 
 import me.czvn.blelibrary.interfaces.IScanResultListener;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +26,8 @@ public final class BLEScanner {
 
     private static final String TAG = BLEScanner.class.getSimpleName();
 
-    private Context context;
+    private WeakReference<Context> contextWeakReference;
+
     private IScanResultListener scanResultListener;
     private BluetoothLeScanner scanner;
     private ScanCallback scanCallback;
@@ -36,24 +38,32 @@ public final class BLEScanner {
 
     /**
      * 单例模式
-     * @param context 保存context的引用
+     *
+     * @param context  保存context的引用
      * @param listener 扫描结果的listener
      * @return BLEScanner的实例
      */
     public static BLEScanner getInstance(Context context, IScanResultListener listener) {
         if (instance == null) {
-            instance = new BLEScanner();
+            instance = new BLEScanner(context);
+        } else {
+            instance.contextWeakReference = new WeakReference<Context>(context);
         }
-        instance.context = context;
         instance.scanResultListener = listener;
         return instance;
     }
 
     /**
      * 开始扫描周围的设备
+     *
      * @return 如果设备不支持BLE扫描则返回false，支持返回true
      */
     public boolean startScan() {
+        Context context = contextWeakReference.get();
+        if (context == null) {
+            return false;
+        }
+
         BluetoothAdapter bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
         if (bluetoothAdapter == null) {
             Log.e(TAG, "bluetoothAdapter is null");
@@ -76,7 +86,8 @@ public final class BLEScanner {
         scanner.stopScan(scanCallback);
     }
 
-    private BLEScanner() {
+    private BLEScanner(Context context) {
+        contextWeakReference = new WeakReference<>(context);
         initScanData();
     }
 
