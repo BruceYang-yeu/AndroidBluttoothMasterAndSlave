@@ -56,7 +56,7 @@ public final class BLEScanner {
     /**
      * 开始扫描周围的设备
      *
-     * @return 如果设备不支持BLE扫描则返回false，支持返回true
+     * @return 开始扫描成功返回true,否则返回false
      */
     public boolean startScan() {
         Context context = contextWeakReference.get();
@@ -120,6 +120,6 @@ public final class BLEScanner {
         };
         filters = new ArrayList<>();
         filters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(BLEProfile.UUID_SERVICE)).build());
-        scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();//针对我们设备的情况使用LOW_LATENCY的扫描模式
+        scanSettings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
     }
 }
