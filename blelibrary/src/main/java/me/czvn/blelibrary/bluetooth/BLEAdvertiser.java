@@ -23,7 +23,6 @@ public final class BLEAdvertiser {
 
     private static BLEAdvertiser instance;
 
-
     private BluetoothLeAdvertiser advertiser;
     private AdvertiseCallback advertiseCallback;
     private AdvertiseSettings advertiseSettings;
@@ -31,7 +30,7 @@ public final class BLEAdvertiser {
 
 
     private WeakReference<Context> contextWeakReference;//使用弱引用防止内存泄漏
-    private WeakReference<IAdvertiseResultListener> listenerWeakReference;
+    private IAdvertiseResultListener advertiseResultListener;
 
     private boolean prepared;//是否准备好广播
 
@@ -47,7 +46,7 @@ public final class BLEAdvertiser {
             instance = new BLEAdvertiser(context, listener);
         } else {
             instance.contextWeakReference = new WeakReference<>(context);
-            instance.listenerWeakReference = new WeakReference<>(listener);
+            instance.advertiseResultListener = listener;
         }
         return instance;
     }
@@ -78,7 +77,7 @@ public final class BLEAdvertiser {
     private BLEAdvertiser(Context context, IAdvertiseResultListener listener) {
         prepared = false;
         contextWeakReference = new WeakReference<>(context);
-        listenerWeakReference = new WeakReference<>(listener);
+        advertiseResultListener = listener;
     }
 
     private void initAdvertiseData() {
@@ -96,10 +95,9 @@ public final class BLEAdvertiser {
             public void onStartSuccess(AdvertiseSettings settingsInEffect) {
                 super.onStartSuccess(settingsInEffect);
                 Log.i(TAG, "Advertise success");
-                IAdvertiseResultListener advertiseResultListener = listenerWeakReference.get();
-                if (advertiseResultListener != null) {
-                    advertiseResultListener.onAdvertiseSuccess();
-                }
+
+                advertiseResultListener.onAdvertiseSuccess();
+
                 if (settingsInEffect != null) {
                     Log.d(TAG, "onStartSuccess TxPowerLv=" + settingsInEffect.getTxPowerLevel() + " mode=" + settingsInEffect.getMode()
                             + " timeout=" + settingsInEffect.getTimeout());
@@ -113,10 +111,7 @@ public final class BLEAdvertiser {
             public void onStartFailure(int errorCode) {
                 super.onStartFailure(errorCode);
                 Log.e(TAG, "Advertise failed.Error code: " + errorCode);
-                IAdvertiseResultListener advertiseResultListener = listenerWeakReference.get();
-                if (advertiseResultListener != null) {
-                    advertiseResultListener.onAdvertiseFailed(errorCode);
-                }
+                advertiseResultListener.onAdvertiseFailed(errorCode);
             }
         };
         AdvertiseSettings.Builder settingsBuilder = new AdvertiseSettings.Builder();
