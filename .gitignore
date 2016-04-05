@@ -34,6 +34,9 @@ proguard/
 
 # Android Studio captures folder
 captures/
+
+
+# IDEA files
 .idea/
 
 ### Android Patch ###
