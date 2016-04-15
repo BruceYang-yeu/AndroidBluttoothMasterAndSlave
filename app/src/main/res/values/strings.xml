@@ -7,6 +7,7 @@
 
     <!--提示区域-->
     <string name="click_to_client">扫描结果:（点击设备可以连接）</string>
+    <string name="chatt_history">聊天记录</string>
     <string name="connected">连接成功</string>
     <string name="disconnected">连接断开</string>
     <string name="not_connected">未连接</string>

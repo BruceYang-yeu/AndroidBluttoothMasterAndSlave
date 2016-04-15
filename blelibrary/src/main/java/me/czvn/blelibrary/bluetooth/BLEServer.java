@@ -27,7 +27,7 @@ import java.util.UUID;
  * 这个类对bluetoothGattServer进行了封装
  */
 public final class BLEServer {
-    private static final String TAG = BLEServer.class.getSimpleName();
+    private static final String TAG = "BBK_" + BLEServer.class.getSimpleName();
 
     private static BLEServer instance;
 
@@ -37,7 +37,7 @@ public final class BLEServer {
 
     private BluetoothGattServer gattServer;
     private BluetoothGattServerCallback serverCallback;
-    private BluetoothGattService gattService;
+    private BluetoothGattService gattService, previousService;
     private BluetoothGattCharacteristic notifyCharacteristic;
 
     private BluetoothDevice remoteDevice;
@@ -58,6 +58,10 @@ public final class BLEServer {
      * @return BLEServer的实例
      */
     public static BLEServer getInstance(Context context, IBLECallback callback) {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         if (instance == null) {
             instance = new BLEServer(context);
         } else {
@@ -81,8 +85,24 @@ public final class BLEServer {
         }
         //开启GattServer
         gattServer = bluetoothManager.openGattServer(context, serverCallback);
-        gattServer.addService(gattService);
-        return true;
+        Log.d(TAG, "["+
+                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "gattServer: " + gattServer);
+//        previousService = gattServer.getService( UUID.fromString(BLEProfile.UUID_SERVICE));
+//        if(previousService != null) {
+//            Log.d(TAG, "["+
+//                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+//                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+//                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+//            gattServer.removeService(previousService);
+//        }
+        if (gattServer !=null){
+            gattServer.addService(gattService);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -122,7 +142,15 @@ public final class BLEServer {
             @Override
             public void inputData(byte[] bytes) {
 
+                Log.d(TAG, "["+
+                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "sendmsg: " + bytes.toString());
                 if (remoteDevice != null) {
+                    Log.d(TAG, "["+
+                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                     notifyCharacteristic.setValue(Arrays.copyOf(bytes, bytes.length));
                     gattServer.notifyCharacteristicChanged(remoteDevice, notifyCharacteristic, false);
                 }
@@ -132,6 +160,10 @@ public final class BLEServer {
             //String从这里整合过来
             @Override
             public void receiveMessage(String msg) {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "receivemsg: " + msg);
                 callback.onMessageReceived(msg);
             }
         });
@@ -144,6 +176,10 @@ public final class BLEServer {
             @Override
             public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
                 super.onConnectionStateChange(device, status, newState);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "status: " + status + "newState: " + newState);
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     Log.i(TAG, "someone connected to this device");
                     callback.onConnected();
@@ -158,7 +194,10 @@ public final class BLEServer {
 
             @Override
             public void onServiceAdded(int status, BluetoothGattService service) {
-
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 super.onServiceAdded(status, service);
                 Log.i(TAG, "onServiceAdded");
             }
@@ -166,6 +205,10 @@ public final class BLEServer {
             @Override
             public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
                 super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onCharacteristicReadRequest");
                 gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, characteristic.getValue());
             }
@@ -174,6 +217,10 @@ public final class BLEServer {
             public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
                 super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value);
                 Log.i(TAG, "onCharacteristicWriteRequest");
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 if (characteristic.getUuid().toString().equals(BLEProfile.UUID_CHARACTERISTIC_WRITE)) {
 //                    characteristic.setValue(value);
                     msgReceiver.outputData(value);
@@ -186,6 +233,10 @@ public final class BLEServer {
             @Override
             public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
                 super.onDescriptorReadRequest(device, requestId, offset, descriptor);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, descriptor.getValue());
             }
 
@@ -193,6 +244,10 @@ public final class BLEServer {
             public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
                 super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
                 Log.i(TAG, "onDescriptorWriteRequest");
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                 remoteDevice = device;
                 gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
@@ -200,17 +255,29 @@ public final class BLEServer {
 
             @Override
             public void onExecuteWrite(BluetoothDevice device, int requestId, boolean execute) {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 super.onExecuteWrite(device, requestId, execute);
             }
 
             @Override
             public void onNotificationSent(BluetoothDevice device, int status) {
                 super.onNotificationSent(device, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onNotificationSent");
             }
 
             @Override
             public void onMtuChanged(BluetoothDevice device, int mtu) {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 super.onMtuChanged(device, mtu);
             }
         };

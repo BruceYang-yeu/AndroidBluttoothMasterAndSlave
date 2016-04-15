@@ -17,7 +17,10 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import me.czvn.bledemo.adapter.ChatListAdapter;
 import me.czvn.bledemo.adapter.ScanListAdapter;
@@ -37,13 +40,11 @@ import me.czvn.blelibrary.interfaces.IScanResultListener;
  */
 
 public final class MainActivity extends AppCompatActivity implements IBLECallback {
-    public static final String TAG = MainActivity.class.getSimpleName();
+    public static final String TAG = "BBK_" + MainActivity.class.getSimpleName();
     public static final boolean LOG_DEBUG = BuildConfig.DEBUG;
     public static final int REQUEST_ENABLE_BLUETOOTH = 15;//请求打开蓝牙
-    public static final int SCAN_DURATION = 10000;//扫描时长
+    public static final int SCAN_DURATION = 2000;//扫描时长
 
-    private Button btnStartServer;
-    private Button btnStartScan;
     private Button btnSendMsg;
     private Button btnCheckAdvertise;
     private EditText etMsg;
@@ -65,7 +66,10 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
     private boolean connected;
 
     private MyHandler mHandler;
-
+    public static  boolean ConnedStatus;
+    private String mPreviousDevicesAddr = null;
+    public int mPreviousRssi = -127;
+    private Thread mThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,14 +78,17 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
         initVariables();
         initViews();
         initData();
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
     }
 
     private void initVariables() {
         btnSendMsg = getView(R.id.btn_send);
-        btnStartScan = getView(R.id.btn_startScan);
-        btnStartServer = getView(R.id.btn_startServer);
         btnCheckAdvertise = getView(R.id.btn_checkAdvertise);
         etMsg = getView(R.id.et_msg);
+
         listScanResult = getView(R.id.list_scan_result);
         listChat = getView(R.id.list_chat);
         msgList = new ArrayList<>();
@@ -104,31 +111,7 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
                 makeToast(msg);
             }
         });
-        btnStartServer.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bleClient.stopConnect();
-                bleScanner.stopScan();
-                bleServer.startGattServer();
-                bleAdvertiser.startAdvertise();
-                connectType = ConnectType.PERIPHERAL;
-            }
-        });
-        btnStartScan.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                bleAdvertiser.stopAdvertise();
-                bleServer.stopGattServer();
-                bleScanner.startScan();
-                connectType = ConnectType.CENTRAL;
-                mHandler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        bleScanner.stopScan();
-                    }
-                }, SCAN_DURATION);
-            }
-        });
+
         btnSendMsg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -137,13 +120,15 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
                     return;
                 }
                 String msg = etMsg.getText().toString();
-                if (connectType == ConnectType.CENTRAL) {
-                    bleClient.sendMsg(msg);
-
-                }
-                if (connectType == ConnectType.PERIPHERAL) {
-                    bleServer.sendMsg(msg);
-                }
+//                if (connectType == ConnectType.CENTRAL) {
+//                    bleClient.sendMsg(msg);
+//
+//                }
+//                if (connectType == ConnectType.PERIPHERAL) {
+//                    bleServer.sendMsg(msg);
+//                }
+                bleClient.sendMsg(msg);
+                bleServer.sendMsg(msg);
                 msgList.add(new MsgData(msg));
                 chatListAdapter.notifyDataSetChanged();
                 etMsg.setText("");
@@ -158,6 +143,50 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
 
     }
 
+    public void StartPeripherals()
+    {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+        bleClient.stopConnect();
+        bleScanner.stopScan();
+        bleServer.startGattServer();
+        bleAdvertiser.startAdvertise();
+        connectType = ConnectType.PERIPHERAL;
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+    }
+
+
+    public void StartCentral()
+    {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+        bleAdvertiser.stopAdvertise();
+        bleServer.stopGattServer();
+        bleScanner.startScan();
+        connectType = ConnectType.CENTRAL;
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                bleScanner.stopScan();
+            }
+        }, SCAN_DURATION);
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+    }
+
     private void initData() {
         bleClient = new BLEClient(this, this);
         bleServer = BLEServer.getInstance(this, this);
@@ -165,6 +194,10 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
             @Override
             public void onAdvertiseSuccess() {
                 if (LOG_DEBUG) {
+                    Log.d(TAG, "["+
+                            Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                            Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                            Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                     Log.i(TAG, "advertise success");
                 }
             }
@@ -172,24 +205,103 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
             @Override
             public void onAdvertiseFailed(int errorCode) {
                 if (LOG_DEBUG) {
+                    Log.d(TAG, "["+
+                            Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                            Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                            Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                     Log.e(TAG, "advertise failed");
                 }
             }
         });
         bleScanner = BLEScanner.getInstance(this, new IScanResultListener() {
             @Override
-            public void onResultReceived(String deviceName, String deviceAddress) {
+            public void onResultReceived(String deviceName, String deviceAddress, int mDeviceRssi) {
                 scanList.add(new ScanData(deviceName, deviceAddress));
                 mHandler.sendEmptyMessage(MyHandler.REFRESH_SCAN_LIST);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]" +
+                        " deviceAddress: "+ deviceAddress + "  mDeviceRssi: " + mDeviceRssi +
+                        " mPreviousDevicesAddr: " + mPreviousDevicesAddr+" mPreviousRssi: " + mPreviousRssi);
+                //TODO Add ywm
+                //bleClient.startConnect(deviceAddress);
+                  if (mDeviceRssi > mPreviousRssi){
+                      mPreviousRssi = mDeviceRssi;
+                      mPreviousDevicesAddr = deviceAddress;
+                  }
+
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 if (LOG_DEBUG) {
-                    Log.e(TAG, "scan failed");
+                    Log.e(TAG, "scan failed" + errorCode);
                 }
             }
         });
+
+//        mThread = new Thread(
+//                new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Log.d(TAG, "[" +
+//                                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+//                                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+//                                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+//                        if(bleServer.startGattServer()) {
+//                            bleAdvertiser.startAdvertise();
+//                            connectType = ConnectType.PERIPHERAL;
+//                            Log.d(TAG, "[" +
+//                                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+//                                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+//                                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+//                        }
+//
+//                        bleScanner.startScan();
+//                        connectType = ConnectType.CENTRAL;
+//
+//                        mHandler.postDelayed(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                Log.d(TAG, "["+
+//                                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+//                                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+//                                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+//                                bleScanner.stopScan();
+//                                if(mPreviousDevicesAddr != null)
+//                                    bleClient.startConnect(mPreviousDevicesAddr);
+//                            }
+//                        }, SCAN_DURATION);
+//                    }
+//                }
+//        );
+//        mThread.start();
+        if(bleServer.startGattServer()) {
+            bleAdvertiser.startAdvertise();
+            connectType = ConnectType.PERIPHERAL;
+            Log.d(TAG, "[" +
+                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+        }
+
+        bleScanner.startScan();
+        connectType = ConnectType.CENTRAL;
+
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                bleScanner.stopScan();
+                if(mPreviousDevicesAddr != null)
+                    bleClient.startConnect(mPreviousDevicesAddr);
+            }
+        }, SCAN_DURATION);
+
     }
 
 
@@ -197,6 +309,10 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
     protected void onStart() {
         super.onStart();
         checkBluetoothOpened();
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
     }
 
 
@@ -204,23 +320,60 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
     protected void onResume() {
         super.onResume();
         mHandler.attach(chatListAdapter, scanListAdapter);
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+    }
+
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+    }
+
+    @Override
+    protected void onStop(){
+        super.onStop();
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         mHandler.detach();
+        System.exit(0);
     }
 
     @Override
-    public void onConnected() {
+    public void onConnected()
+    {
         connected = true;
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         makeToast(getString(R.string.connected));
     }
 
     @Override
     public void onDisconnected() {
         connected = false;
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         makeToast(getString(R.string.disconnected));
     }
 
@@ -250,10 +403,13 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
     }
 
     //Handler来刷新UI
-    private static class MyHandler extends Handler {
+    private  class MyHandler extends Handler {
         //可以使用runOnUiThread或者持有View使用View.post来简化代码
         public static final int REFRESH_SCAN_LIST = 250;
         public static final int REFRESH_CHAT_LIST = 38;
+
+        public static final int START_PERIPHERAL = 1;
+        public static final int START_CENTRAL = 0;
 
         private BaseAdapter chatAdapter;
         private BaseAdapter scanAdapter;
@@ -271,7 +427,44 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            if (msg.what == REFRESH_CHAT_LIST) {
+            switch (msg.what)
+            {
+                case REFRESH_CHAT_LIST:
+                    {
+                        if (chatAdapter != null) {
+                            chatAdapter.notifyDataSetChanged();
+                        }
+                    }
+                    break;
+                case REFRESH_SCAN_LIST:
+                    {
+                        if (scanAdapter != null) {
+                            scanAdapter.notifyDataSetChanged();
+                        }
+                    }
+                    break;
+                case START_CENTRAL:
+                    {
+                            Log.d(TAG, "["+
+                                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                            StartCentral();
+                    }
+                    break;
+                case START_PERIPHERAL:
+                    {
+
+                            Log.d(TAG, "[" +
+                                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                            StartPeripherals();
+                    }
+                    break;
+            }
+
+           /* if (msg.what == REFRESH_CHAT_LIST) {
                 if (chatAdapter != null) {
                     chatAdapter.notifyDataSetChanged();
                 }
@@ -282,7 +475,21 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
                 }
             }
 
+            if (msg.what == START_PERIPHERAL) {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                StartCentral();
+            }
 
+            if (msg.what == START_CENTRAL) {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                StartPeripherals();
+            }*/
         }
     }
 
@@ -294,7 +501,6 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
                 Toast.makeText(MainActivity.this, toast, Toast.LENGTH_SHORT).show();
             }
         });
-
     }
 
     //可以减少许多次强制类型转换
@@ -302,5 +508,4 @@ public final class MainActivity extends AppCompatActivity implements IBLECallbac
     private <T extends View> T getView(int resID) {
         return (T) findViewById(resID);
     }
-
 }

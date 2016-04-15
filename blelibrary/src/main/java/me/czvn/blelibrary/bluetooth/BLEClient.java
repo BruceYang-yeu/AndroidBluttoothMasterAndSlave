@@ -27,35 +27,34 @@ import java.util.UUID;
  * 对bluetoothGatt进行了封装
  */
 public final class BLEClient {
-    private static final String TAG = BLEClient.class.getSimpleName();
-
+    private static final String TAG = "BBK_" + BLEClient.class.getSimpleName();
     private WeakReference<Context> contextWeakReference;
-
     private BluetoothGattCallback gattCallback;
     private BluetoothGatt bluetoothGatt;
-
     private MsgReceiver msgReceiver;
     private MsgSender msgSender;
-
     private IBLECallback ibleCallback;
-
-
     private BluetoothGattCharacteristic writeChannel;
-
     private boolean connected;
-
     private MsgQueue<byte[]> msgQueue;//使用消息队列达到异步处理数据发送的问题
-
     private boolean onWrite;//是否正在发送数据
 
 
     public BLEClient(Context mContext, IBLECallback IBLECallback) {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         contextWeakReference=new WeakReference<>(mContext);
         this.ibleCallback = IBLECallback;
         connected = false;
         msgSender = new MsgSender(new ISender() {
             @Override
             public void inputData(byte[] bytes) {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "bytes: " +bytes.toString());
                 msgQueue.enQueue(Arrays.copyOf(bytes,bytes.length));
                 startWrite();
             }
@@ -63,12 +62,19 @@ public final class BLEClient {
         msgReceiver = new MsgReceiver(new IReceiver() {
             @Override
             public void receiveMessage(String msg) {
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 ibleCallback.onMessageReceived(msg);
             }
         });
         msgQueue = new MsgQueue<>();
         initGattCallback();
-
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
     }
 
     /**
@@ -122,10 +128,12 @@ public final class BLEClient {
             @Override
             public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
                 super.onConnectionStateChange(gatt, status, newState);
-                Log.i(TAG, "onConnectionStateChange");
+                Log.i(TAG, "onConnectionStateChange" + " newState: " + newState);
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     Log.i(TAG, "Client success & start discover services");
-                    gatt.discoverServices();
+                    boolean mHaveServices = gatt.discoverServices();
+                    Log.i(TAG, "mHaveServices: " + mHaveServices);
+
                     ibleCallback.onConnected();
 
                 }
@@ -138,6 +146,10 @@ public final class BLEClient {
             @Override
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                 super.onServicesDiscovered(gatt, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onServicesDiscovered");
 
                 if (status != BluetoothGatt.GATT_SUCCESS) {
@@ -145,13 +157,23 @@ public final class BLEClient {
                     return;
                 }
                 BluetoothGattService service = bluetoothGatt.getService(UUID.fromString(BLEProfile.UUID_SERVICE));
+                //BluetoothGattService service = gatt.getService(UUID.fromString(BLEProfile.UUID_SERVICE));
+                Log.e(TAG, "service: " +service);
                 if (service != null) {
+                    Log.d(TAG, "["+
+                            Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                            Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                            Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                     BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(BLEProfile.UUID_CHARACTERISTIC_NOTIFY));
                     if (characteristic != null) {
                         //订阅通知，这段代码对iOS的peripheral也能订阅
                         Log.i(TAG, "SetNotification");
                         bluetoothGatt.setCharacteristicNotification(characteristic, true);
                         for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
+                            Log.d(TAG, "["+
+                                    Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                                    Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                                    Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                             gatt.writeDescriptor(descriptor);
                         }
@@ -171,6 +193,10 @@ public final class BLEClient {
             @Override
             public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                 super.onCharacteristicRead(gatt, characteristic, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onCharacteristicRead");
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     Log.e(TAG, "Read Characteristic failed");
@@ -181,6 +207,10 @@ public final class BLEClient {
             @Override
             public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                 super.onCharacteristicWrite(gatt, characteristic, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 nextWrite();
                 Log.i(TAG, "onCharacteristicWrite");
             }
@@ -188,6 +218,10 @@ public final class BLEClient {
             @Override
             public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
                 //处理notify
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 super.onCharacteristicChanged(gatt, characteristic);
                 Log.i(TAG, "Notify: onCharacteristicChange");
                 byte[] value = characteristic.getValue();
@@ -197,43 +231,63 @@ public final class BLEClient {
             @Override
             public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
                 super.onDescriptorRead(gatt, descriptor, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onDescriptorRead");
             }
 
             @Override
             public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
                 super.onDescriptorWrite(gatt, descriptor, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onDescriptorWrite");
             }
 
             @Override
             public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
                 super.onReliableWriteCompleted(gatt, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onReliableWriteCompleted");
             }
 
             @Override
             public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
                 super.onReadRemoteRssi(gatt, rssi, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onReadRemoteRssi");
             }
 
             @Override
             public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
                 super.onMtuChanged(gatt, mtu, status);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.i(TAG, "onMtuChanged");
             }
         };
     }
 
-
-
-
-
     /*
      * 控制稳定write区域
      */
     private void startWrite() {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "onWrite: " + onWrite);
         if (onWrite) {
             return;
         }
@@ -244,6 +298,10 @@ public final class BLEClient {
      * 控制稳定write区域
      */
     private void nextWrite() {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "onWrite: " + onWrite);
         if (msgQueue.isEmpty()) {
             onWrite = false;
             return;
@@ -255,6 +313,10 @@ public final class BLEClient {
      * 控制稳定write区域
      */
     private void write() {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "onWrite: " + onWrite);
         onWrite = true;
         byte[] bytes = msgQueue.deQueue();
         try {

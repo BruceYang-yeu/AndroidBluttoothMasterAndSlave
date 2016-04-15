@@ -24,7 +24,7 @@ import java.util.List;
  */
 public final class BLEScanner {
 
-    private static final String TAG = BLEScanner.class.getSimpleName();
+    private static final String TAG = "BBK_" + BLEScanner.class.getSimpleName();
 
     private WeakReference<Context> contextWeakReference;
 
@@ -44,6 +44,10 @@ public final class BLEScanner {
      * @return BLEScanner的实例
      */
     public static BLEScanner getInstance(Context context, IScanResultListener listener) {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         if (instance == null) {
             instance = new BLEScanner(context);
         } else {
@@ -64,6 +68,11 @@ public final class BLEScanner {
             return false;
         }
 
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+
         BluetoothAdapter bluetoothAdapter = ((BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
         if (bluetoothAdapter == null) {
             Log.e(TAG, "bluetoothAdapter is null");
@@ -83,6 +92,10 @@ public final class BLEScanner {
         if (scanner == null || scanCallback == null) {
             return;
         }
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         scanner.stopScan(scanCallback);
     }
 
@@ -97,23 +110,47 @@ public final class BLEScanner {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 super.onScanResult(callbackType, result);
-                Log.i(TAG, "onScanResult" + result);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                Log.i(TAG, "result" + result);
                 String address = result.getDevice().getAddress();
                 String name;
                 ScanRecord scanRecord = result.getScanRecord();
+                int mRssi = result == null ? -127: result.getRssi();
+                Log.i(TAG, "Rssi: " +mRssi);
                 name = scanRecord == null ? "unknown" : scanRecord.getDeviceName();
-                scanResultListener.onResultReceived(name, address);
+                //TODO stop scan
+//                if (name != null)
+//                {
+//                    Log.d(TAG, "["+
+//                            Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+//                            Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+//                            Thread.currentThread().getStackTrace()[2].getMethodName() + "]" + "========StopScan");
+//                    stopScan();
+//                }
+
+                scanResultListener.onResultReceived(name, address, mRssi);
             }
 
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.e(TAG, "onBatchScanResults");
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
                 Log.e(TAG, "onScanFailed");
                 scanResultListener.onScanFailed(errorCode);
             }

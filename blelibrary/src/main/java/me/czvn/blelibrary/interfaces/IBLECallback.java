@@ -8,7 +8,7 @@ public interface IBLECallback {
     /**
      * 连接成功
      */
-    void onConnected();
+    void onConnected();  //  void onConnected(int mCurretnRssi);
 
     /**
      * 连接断开

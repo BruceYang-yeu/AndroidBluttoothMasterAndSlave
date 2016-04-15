@@ -15,11 +15,10 @@ import java.lang.ref.WeakReference;
 import me.czvn.blelibrary.interfaces.IAdvertiseResultListener;
 
 /**
- * Created by andy on 2016/1/13.
  * 对bluetoothLeAdvertiser进行了封装
  */
 public final class BLEAdvertiser {
-    private static final String TAG = BLEAdvertiser.class.getSimpleName();
+    private static final String TAG = "BBK_" + BLEAdvertiser.class.getSimpleName();
 
     private static BLEAdvertiser instance;
 
@@ -42,6 +41,10 @@ public final class BLEAdvertiser {
      * @return BLEAdvertiser的实例
      */
     public static BLEAdvertiser getInstance(Context context, IAdvertiseResultListener listener) {
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         if (instance == null) {
             instance = new BLEAdvertiser(context, listener);
         } else {
@@ -61,6 +64,10 @@ public final class BLEAdvertiser {
         if (advertiser == null) {
             return;
         }
+        Log.d(TAG, "["+
+                Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
         advertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback);
     }
 
@@ -94,7 +101,11 @@ public final class BLEAdvertiser {
             @Override
             public void onStartSuccess(AdvertiseSettings settingsInEffect) {
                 super.onStartSuccess(settingsInEffect);
-                Log.i(TAG, "Advertise success");
+                Log.d(TAG, "["+
+                        Thread.currentThread().getStackTrace()[2].getFileName() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getLineNumber() + "_" +
+                        Thread.currentThread().getStackTrace()[2].getMethodName() + "]");
+                Log.i(TAG, "onStartSuccess success");
 
                 advertiseResultListener.onAdvertiseSuccess();
 
@@ -115,10 +126,10 @@ public final class BLEAdvertiser {
             }
         };
         AdvertiseSettings.Builder settingsBuilder = new AdvertiseSettings.Builder();
-        settingsBuilder.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED);
+        settingsBuilder.setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY);//ADVERTISE_MODE_BALANCED origin
         settingsBuilder.setConnectable(true);
         settingsBuilder.setTimeout(0);
-        settingsBuilder.setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM);
+        settingsBuilder.setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH);// ADVERTISE_TX_POWER_MEDIUM origin
         advertiseSettings = settingsBuilder.build();
         AdvertiseData.Builder dataBuilder = new AdvertiseData.Builder();
         dataBuilder.setIncludeDeviceName(true);
